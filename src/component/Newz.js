@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import NewzItems from "./NewzItems";
 import Loader from "./loader";
 import PropTypes from 'prop-types'
-
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 export class Newz extends Component {
 
@@ -17,20 +17,24 @@ export class Newz extends Component {
     category : PropTypes.string
 
   }
-  constructor() {
-    super();
+  capitalizeFirstLetter = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+  constructor(props) {
+    super(props);
     this.state = {
       articles: [],
       page: 1,
       totalArticles: 0,
       loading: false,
     };
+    document.title = `${this.capitalizeFirstLetter(this.props.category)}-NewzWeb`;
   }
 
  
 
   fetchArticles = async (page = 1) => {
-    let url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=f1330346e890489f9793904ea0730765&page=${page}&pageSize=${this.props.pagesize}`;
+    let url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=c74edaad4e384eef919f7f58a89ef26d&page=${page}&pageSize=${this.props.pagesize}`;
     this.setState({ loading: true });
     let data = await fetch(url);
     let parseData = await data.json();
@@ -39,11 +43,11 @@ export class Newz extends Component {
       totalArticles: parseData.totalResults,
       page: page,
       loading: false,
+     
     });
   };
 
   componentDidMount = async () => {
-   
     await this.fetchArticles();
   };
 
@@ -63,38 +67,39 @@ export class Newz extends Component {
     return this.state.page >= Math.ceil(this.state.totalArticles /  `${this.props.pagesize}`);
   };
 
+  fetchMoreData =async () => {
+    this.setState ({page : this.state.page +1});
+    let url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=c74edaad4e384eef919f7f58a89ef26d&page=${this.state.page}&pageSize=${this.props.pagesize}`;
+    this.setState({ loading: true });
+    let data = await fetch(url);
+    let parseData = await data.json();
+    this.setState({
+      articles: this.state.articles.concat(parseData.articles),
+      totalArticles: parseData.totalResults,
+      loading: false,
+     
+    });
+    
+  };
+
   render() {
     return (
     
-      <div className="container my-3">
-        <h1 className="my-3 text-center">Top Headlines</h1>
+      <>
+        <h1 className="my-3 text-center">Top  {this.capitalizeFirstLetter(this.props.category)} Headlines  </h1>
         <hr />
-    
-        <div className="d-flex justify-content-between">
-        <button
-            disabled={this.state.page <= 1}
-            type="button"
-            onClick={this.handlePrevPage}
-            className="btn btn-dark"
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            className="btn btn-dark"
-            disabled={this.noMoreArticles()}
-            onClick={this.handleNextPage}
-          >
-            Next
-          </button>
-        </div>
-        {this.state.loading && (
-      <div className="d-flex justify-content-center my-3">
+       
+ <InfiniteScroll
+          dataLength={this.state.articles.length}
+          next={this.fetchMoreData}
+          hasMore={this.state.articles.length !== this.state.totalResults}
+          loader={<div className="d-flex justify-content-center my-3">
         <Loader />
-      </div>
-    )}
-        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 my-1">
-          {!this.state.loading && this.state.articles.map((element) => (
+      </div>}
+        >
+<div className="container my-3">
+<div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 my-1">
+          {this.state.articles.map((element) => (
             <div className="col mb-4" key={element.url}>
               <NewzItems
                 title={element.title ? element.title.slice(0, 50) : ""}
@@ -103,32 +108,22 @@ export class Newz extends Component {
                 }
                 imageUrl={element.urlToImage}
                 url={element.url}
+                author={element.author}
+                date={element.publishedAt}
               />
             </div>
           ))}
         </div>
+</div>
         
-        <div className=" d-flex justify-content-between" >
-          <button
-            disabled={this.state.page <= 1}
-            type="button"
-            onClick={this.handlePrevPage}
-            className="btn btn-dark"
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            className="btn btn-dark"
-            disabled={this.noMoreArticles()}
-            onClick={this.handleNextPage}
-          >
-            Next
-          </button>
-        </div>
-      </div>
+</InfiniteScroll>
+</>
     );
+  
   }
 }
 
 export default Newz;
+
+
+
